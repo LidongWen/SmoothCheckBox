@@ -1,5 +1,6 @@
 package com.wenld.smoothcheckbox;
 
+import android.animation.Animator;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -46,15 +47,15 @@ public class SmoothCheckBox extends CustomView implements Checkable {
     Point tickStartPoint;
     float length;
 
-    private int mCheckedColor, mUnCheckedColor, mFloorUnCheckedColor;
+    private int mCheckedColor, mUnCheckedColor, mUncheckStrokeColor;
 
-    private float mOutScale = 1.0f, mInScale = 1.0f, mTickScale = 1.0f; // 外圆缩放比例,内圆缩放比例,勾的进度比例
+    private float mOutScale, mInScale, mTickScale; // 外圆缩放比例,内圆缩放比例,勾的进度比例
     private float mStrokeWidth;//边框的厚度
 
     private int mAnimDuration;
 
     private boolean mChecked;
-    private SmoothCheckBox.OnCheckedChangeListener mListener;
+    private OnCheckedChangeListener mListener;
 
     public SmoothCheckBox(Context context) {
         super(context);
@@ -89,7 +90,7 @@ public class SmoothCheckBox extends CustomView implements Checkable {
         TypedArray ta = getContext().obtainStyledAttributes(attributeSet, R.styleable.SmoothCheckBox);
         tickColor = ta.getColor(R.styleable.SmoothCheckBox_color_tick, COLOR_TICK);
         mAnimDuration = ta.getInt(R.styleable.SmoothCheckBox_duration, DEF_ANIM_DURATION);
-        mFloorUnCheckedColor = ta.getColor(R.styleable.SmoothCheckBox_color_unchecked_stroke, COLOR_OUT_UNCHECKED);
+        mUncheckStrokeColor = ta.getColor(R.styleable.SmoothCheckBox_color_unchecked_stroke, COLOR_OUT_UNCHECKED);
         mCheckedColor = ta.getColor(R.styleable.SmoothCheckBox_color_checked, COLOR_CHECKED);
         mUnCheckedColor = ta.getColor(R.styleable.SmoothCheckBox_color_unchecked, COLOR_UNCHECKED);
         mStrokeWidth = ta.getDimensionPixelSize(R.styleable.SmoothCheckBox_stroke_width, DensityUtils.dip2px(getContext(), 0));
@@ -117,8 +118,15 @@ public class SmoothCheckBox extends CustomView implements Checkable {
             @Override
             public void onClick(View v) {
                 toggle();
+                if (isChecked()) {
+                    startCheckedAnimation();
+                } else {
+                    startUnCheckedAnimation();
+                }
             }
         });
+
+        setDefaultWidth(DensityUtils.dip2px(this.getContext(), DEF_DRAW_SIZE));
     }
 
     @Override
@@ -179,10 +187,31 @@ public class SmoothCheckBox extends CustomView implements Checkable {
         }
     }
 
+    /**
+     * checked with animation
+     *
+     * @param checked checked
+     * @param animate change with animation
+     */
+    public void setChecked(boolean checked, boolean animate) {
+        if (animate) {
+            this.setChecked(checked);
+            if (isChecked()) {
+                startCheckedAnimation();
+            } else {
+                startUnCheckedAnimation();
+            }
+        } else {
+            this.setChecked(checked);
+        }
+    }
+
     private void resetValue() {
-        mOutScale = isChecked() ? 1.0f : 0f;
-        mInScale = isChecked() ? 0f : 1.0f;
-        outColor = isChecked() ? mCheckedColor : mFloorUnCheckedColor;
+        mOutScale = 1.0f;
+        mInScale = isChecked() ? 0f : 1f;
+        mTickScale = isChecked() ? 1f : 0f;
+        inColor = mUnCheckedColor;
+        outColor = isChecked() ? mCheckedColor : mUncheckStrokeColor;
     }
 
     @Override
@@ -195,86 +224,177 @@ public class SmoothCheckBox extends CustomView implements Checkable {
         setChecked(!isChecked());
     }
 
+    ValueAnimator inAnimator;
+    ValueAnimator outAnimator;
+    ValueAnimator tickAnimator;
 
     private void startCheckedAnimation() {
-        ValueAnimator animator = ValueAnimator.ofFloat(1.0f, 0f);
-        animator.setDuration(mAnimDuration / 3 * 2);
-        animator.setInterpolator(new LinearInterpolator());
-        animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+        if (outAnimator != null && outAnimator.isRunning())
+            outAnimator.cancel();
+        if (inAnimator != null && inAnimator.isRunning())
+            inAnimator.cancel();
+        if (tickAnimator != null && tickAnimator.isRunning())
+            tickAnimator.cancel();
+
+        inAnimator = ValueAnimator.ofFloat(1.0f, 0f);
+        inAnimator.setDuration(mAnimDuration / 3 * 2);
+        inAnimator.setInterpolator(new LinearInterpolator());
+        inAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 mInScale = (float) animation.getAnimatedValue();
-                outColor = getGradientColor(mUnCheckedColor, mCheckedColor, 1 - mInScale);
+                outColor = ColorTool.getGradientColor(mUnCheckedColor, mCheckedColor, 1 - mInScale);
                 postInvalidate();
             }
         });
-        animator.start();
+        inAnimator.addListener(new Animator.AnimatorListener() {
+            @Override
+            public void onAnimationStart(Animator animation) {
 
-        ValueAnimator floorAnimator = ValueAnimator.ofFloat(1.0f, 0.8f, 1.0f);
-        floorAnimator.setDuration(mAnimDuration);
-        floorAnimator.setInterpolator(new LinearInterpolator());
-        floorAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                tickAnimator = ValueAnimator.ofFloat(0f, 1.0f);
+                tickAnimator.setDuration(mAnimDuration / 3 * 2);
+                tickAnimator.setInterpolator(new LinearInterpolator());
+                tickAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                    @Override
+                    public void onAnimationUpdate(ValueAnimator animation) {
+                        mTickScale = (float) animation.getAnimatedValue();
+                        postInvalidate();
+                    }
+                });
+                tickAnimator.start();
+            }
+
+            @Override
+            public void onAnimationCancel(Animator animation) {
+
+            }
+
+            @Override
+            public void onAnimationRepeat(Animator animation) {
+
+            }
+        });
+
+
+        outAnimator = ValueAnimator.ofFloat(1.0f, 0.8f, 1.0f);
+        outAnimator.setDuration(mAnimDuration);
+        outAnimator.setInterpolator(new LinearInterpolator());
+        outAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 mOutScale = (float) animation.getAnimatedValue();
                 postInvalidate();
             }
         });
-        floorAnimator.start();
+        mTickScale = 0f;
+        inAnimator.start();
+        outAnimator.start();
 
 //        drawTickDelayed();
     }
 
     private void startUnCheckedAnimation() {
-        ValueAnimator animator = ValueAnimator.ofFloat(0f, 1.0f);
-        animator.setDuration(mAnimDuration);
-        animator.setInterpolator(new LinearInterpolator());
-        animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+        if (outAnimator != null && outAnimator.isRunning())
+            outAnimator.cancel();
+        if (inAnimator != null && inAnimator.isRunning())
+            inAnimator.cancel();
+        if (tickAnimator != null && tickAnimator.isRunning())
+            tickAnimator.cancel();
+
+        inAnimator = ValueAnimator.ofFloat(0f, 1.0f);
+        inAnimator.setDuration(mAnimDuration);
+        inAnimator.setInterpolator(new LinearInterpolator());
+        inAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 mInScale = (float) animation.getAnimatedValue();
-                outColor = getGradientColor(mCheckedColor, mFloorUnCheckedColor, mInScale);
+                outColor = ColorTool.getGradientColor(mCheckedColor, mUncheckStrokeColor, mInScale);
                 postInvalidate();
             }
         });
-        animator.start();
 
-        ValueAnimator floorAnimator = ValueAnimator.ofFloat(1.0f, 0.8f, 1.0f);
-        floorAnimator.setDuration(mAnimDuration);
-        floorAnimator.setInterpolator(new LinearInterpolator());
-        floorAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+
+        outAnimator = ValueAnimator.ofFloat(1.0f, 0.8f, 1.0f);
+        outAnimator.setDuration(mAnimDuration);
+        outAnimator.setInterpolator(new LinearInterpolator());
+        outAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 mOutScale = (float) animation.getAnimatedValue();
                 postInvalidate();
             }
         });
-        floorAnimator.start();
+        mTickScale = 0f;
+        inAnimator.start();
+        outAnimator.start();
     }
 
-    private static int getGradientColor(int startColor, int endColor, float percent) {
-        int startA = Color.alpha(startColor);
-        int startR = Color.red(startColor);
-        int startG = Color.green(startColor);
-        int startB = Color.blue(startColor);
 
-        int endA = Color.alpha(endColor);
-        int endR = Color.red(endColor);
-        int endG = Color.green(endColor);
-        int endB = Color.blue(endColor);
-
-        int currentA = (int) (startA * (1 - percent) + endA * percent);
-        int currentR = (int) (startR * (1 - percent) + endR * percent);
-        int currentG = (int) (startG * (1 - percent) + endG * percent);
-        int currentB = (int) (startB * (1 - percent) + endB * percent);
-        return Color.argb(currentA, currentR, currentG, currentB);
-    }
-
-    public void setOnCheckedChangeListener(SmoothCheckBox.OnCheckedChangeListener l) {
+    public void setOnCheckedChangeListener(OnCheckedChangeListener l) {
         this.mListener = l;
     }
 
     public interface OnCheckedChangeListener {
         void onCheckedChanged(SmoothCheckBox checkBox, boolean isChecked);
+    }
+
+    public int getmCheckedColor() {
+        return mCheckedColor;
+    }
+
+    public void setmCheckedColor(int mCheckedColor) {
+        this.mCheckedColor = mCheckedColor;
+    }
+
+    public int getmUnCheckedColor() {
+        return mUnCheckedColor;
+    }
+
+    public void setmUnCheckedColor(int mUnCheckedColor) {
+        this.mUnCheckedColor = mUnCheckedColor;
+    }
+
+    public boolean ismChecked() {
+        return mChecked;
+    }
+
+    public void setmChecked(boolean mChecked) {
+        this.mChecked = mChecked;
+    }
+
+    public int getmUncheckStrokeColor() {
+        return mUncheckStrokeColor;
+    }
+
+    public void setmUncheckStrokeColor(int mUncheckStrokeColor) {
+        this.mUncheckStrokeColor = mUncheckStrokeColor;
+    }
+
+    public float getmStrokeWidth() {
+        return mStrokeWidth;
+    }
+
+    public void setmStrokeWidth(float mStrokeWidth) {
+        this.mStrokeWidth = mStrokeWidth;
+    }
+
+    public int getmAnimDuration() {
+        return mAnimDuration;
+    }
+
+    public void setmAnimDuration(int mAnimDuration) {
+        this.mAnimDuration = mAnimDuration;
+    }
+
+    public int getTickColor() {
+        return tickColor;
+    }
+
+    public void setTickColor(int tickColor) {
+        this.tickColor = tickColor;
     }
 }
