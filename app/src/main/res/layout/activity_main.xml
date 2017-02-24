@@ -12,14 +12,13 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.wenld.smoothcheckbox_.MainActivity">
 
-    <com.wenld.smoothcheckbox.SmoothCheckBox_01
+    <com.wenld.smoothcheckbox.SmoothCheckBox
         android:id="@+id/scb"
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:layout_margin="5dp"
         android:paddingTop="10dp"
-        app:color_checked="@color/colorAccent"
-        app:duration="5000" />
+        app:color_checked="@color/colorAccent" />
 
     <com.wenld.smoothcheckbox.SmoothCheckBox
         android:layout_width="40dp"
@@ -28,14 +27,14 @@
         app:color_checked="#447eeb"
         app:isCheck="true" />
 
-    <com.wenld.smoothcheckbox.SmoothCheckBox_01
+    <com.wenld.smoothcheckbox.SmoothCheckBox
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:layout_margin="5dp"
         android:paddingBottom="10dp"
         app:color_checked="#149A45" />
 
-    <com.wenld.smoothcheckbox.SmoothCheckBox_01
+    <com.wenld.smoothcheckbox.SmoothCheckBox
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:layout_margin="5dp" />

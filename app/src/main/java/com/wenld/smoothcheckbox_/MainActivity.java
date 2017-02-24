@@ -4,6 +4,8 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
+import com.wenld.smoothcheckbox.SmoothCheckBox;
+
 public class MainActivity extends AppCompatActivity {
 
     @Override
@@ -11,10 +13,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        final SmoothCheckBox_01 scb = (SmoothCheckBox_01) findViewById(R.id.scb);
-        scb.setOnCheckedChangeListener(new SmoothCheckBox_01.OnCheckedChangeListener() {
+        SmoothCheckBox scb = (SmoothCheckBox) findViewById(R.id.scb);
+//        scb.setChecked(boolean checked);
+//        scb.setChecked(boolean checked, boolean animate);
+        scb.setOnCheckedChangeListener(new SmoothCheckBox.OnCheckedChangeListener() {
             @Override
-            public void onCheckedChanged(SmoothCheckBox_01 checkBox, boolean isChecked) {
+            public void onCheckedChanged(SmoothCheckBox checkBox, boolean isChecked) {
                 Log.d("SmoothCheckBox", String.valueOf(isChecked));
             }
         });
