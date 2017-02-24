@@ -17,7 +17,6 @@
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:layout_margin="5dp"
-        android:paddingTop="10dp"
         app:color_checked="@color/colorAccent" />
 
     <com.wenld.smoothcheckbox.SmoothCheckBox
@@ -31,7 +30,6 @@
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:layout_margin="5dp"
-        android:paddingBottom="10dp"
         app:color_checked="#149A45" />
 
     <com.wenld.smoothcheckbox.SmoothCheckBox

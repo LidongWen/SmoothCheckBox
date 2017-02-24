@@ -1,5 +1,6 @@
 #SmoothCheckBox
 
+![](art/GIF.gif)
 
 ### Attrs 属性
 |attr|format|description|
